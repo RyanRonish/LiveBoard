@@ -12,11 +12,15 @@ public class LiveBoardServer {
         ServerSocket serverSocket = new ServerSocket(PORT);
         System.out.println("LiveBoard Server started on port " + PORT);
         while (true) {
-            Socket clientSocket = serverSocket.accept();
-            ClientHandler handler = new ClientHandler(clientSocket);
-            clients.add(handler);
-            pool.execute(handler);
-            broadcastUserList();
+            try {
+                Socket clientSocket = serverSocket.accept();
+                ClientHandler handler = new ClientHandler(clientSocket);
+                clients.add(handler);
+                pool.execute(handler);
+                broadcastUserList();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -56,16 +60,21 @@ public class LiveBoardServer {
                 in = new ObjectInputStream(socket.getInputStream());
 
                 System.out.println("Client connected: " + clientName);
-                String msg;
-                while ((msg = (String) in.readObject()) != null) {
+
+                while (true) {
+                    Object obj = in.readObject();
+                    if (!(obj instanceof String)) continue;
+                    String msg = (String) obj;
+
                     if (msg.equals("CLEAR")) {
                         broadcast("CLEAR", null);
                     } else if (msg.startsWith("DRAW:")) {
                         broadcast(msg, this);
                     }
                 }
-            } catch (Exception e) {
-                System.out.println("Client disconnected: " + clientName);
+            } catch (IOException | ClassNotFoundException e) {
+                System.out.println("Client disconnected or error: " + clientName);
+                e.printStackTrace();
             } finally {
                 try { socket.close(); } catch (IOException e) {}
                 clients.remove(this);
@@ -78,6 +87,8 @@ public class LiveBoardServer {
                 out.writeObject(msg);
                 out.flush();
             } catch (IOException e) {
+                System.out.println("Error sending to client: " + clientName);
+                e.printStackTrace();
                 clients.remove(this);
             }
         }
