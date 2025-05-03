@@ -1,11 +1,11 @@
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
 import java.util.List;
-import java.awt.Point;
+import java.util.ArrayList;
 
 public class LiveBoardClient extends JFrame {
     private ObjectOutputStream out;
@@ -27,53 +27,46 @@ public class LiveBoardClient extends JFrame {
                 Object input;
                 while ((input = in.readObject()) != null) {
                     if (input instanceof Point) {
-                        drawArea.addPoint((Point) input);
+                        final Point point = (Point) input; // Create a final variable
+                        SwingUtilities.invokeLater(() -> drawArea.addPoint(point));
                     }
                 }
             } catch (Exception e) {
-                System.out.println("Disconnected from server.");
+                System.err.println("Connection closed or error: " + e.getMessage());
             }
         }).start();
     }
 
     public static void main(String[] args) throws IOException {
-        String serverIP = JOptionPane.showInputDialog("Enter server IP (e.g. 127.0.0.1):");
-        int port = Integer.parseInt(JOptionPane.showInputDialog("Enter server port (e.g. 12345):"));
-        SwingUtilities.invokeLater(() -> {
-            try {
-                new LiveBoardClient(serverIP, port).setVisible(true);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+        String serverIP = "localhost";
+        int port = 12345;
+        LiveBoardClient client = new LiveBoardClient(serverIP, port);
+        client.setVisible(true);
     }
 }
 
 class DrawArea extends JPanel {
+    private final List<Point> points = new ArrayList<>();
     private final ObjectOutputStream out;
-    private final java.util.List<Point> points = new ArrayList<>();
 
     public DrawArea(ObjectOutputStream out) {
         this.out = out;
-        setBackground(Color.WHITE);
-
-        addMouseMotionListener(new MouseMotionAdapter() {
+        addMouseMotionListener(new MouseAdapter() {
             public void mouseDragged(MouseEvent e) {
-                Point point = e.getPoint();
-                points.add(point);
+                Point p = e.getPoint();
+                points.add(p);
                 repaint();
                 try {
-                    out.writeObject(point);
-                    out.flush();
+                    out.writeObject(p);
                 } catch (IOException ex) {
-                    ex.printStackTrace();
+                    System.err.println("Failed to send point: " + ex.getMessage());
                 }
             }
         });
     }
 
-    public void addPoint(Point point) {
-        points.add(point);
+    public void addPoint(Point p) {
+        points.add(p);
         repaint();
     }
 

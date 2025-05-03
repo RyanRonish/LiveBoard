@@ -1,9 +1,12 @@
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 public class LiveBoardServer {
-    private static List<ObjectOutputStream> clients = new ArrayList<>();
+    private static final List<ObjectOutputStream> clients = Collections.synchronizedList(new ArrayList<>());
+    private static final ExecutorService pool = Executors.newCachedThreadPool();
 
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = new ServerSocket(12345);
@@ -15,27 +18,35 @@ public class LiveBoardServer {
             ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
             clients.add(out);
 
-            new Thread(() -> {
-                try {
-                    ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
-                    Object input;
-                    while ((input = in.readObject()) != null) {
-                        broadcast(input);
-                    }
-                } catch (Exception e) {
-                    System.out.println("Client disconnected.");
-                }
-            }).start();
+            pool.execute(() -> handleClient(clientSocket, out));
         }
     }
 
-    private static void broadcast(Object message) {
-        for (ObjectOutputStream client : clients) {
+    private static void handleClient(Socket clientSocket, ObjectOutputStream out) {
+        try (ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream())) {
+            Object input;
+            while ((input = in.readObject()) != null) {
+                broadcast(input);
+            }
+        } catch (Exception e) {
+            System.err.println("Client error: " + e.getMessage());
+        } finally {
             try {
-                client.writeObject(message);
-                client.flush();
-            } catch (IOException e) {
-                System.out.println("Error sending to client.");
+                clientSocket.close();
+            } catch (IOException ignored) {}
+            clients.remove(out);
+        }
+    }
+
+    private static void broadcast(Object input) {
+        synchronized (clients) {
+            Iterator<ObjectOutputStream> it = clients.iterator();
+            while (it.hasNext()) {
+                try {
+                    it.next().writeObject(input);
+                } catch (IOException e) {
+                    it.remove(); // remove disconnected client
+                }
             }
         }
     }
