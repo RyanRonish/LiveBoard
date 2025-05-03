@@ -6,7 +6,6 @@ import java.io.*;
 import java.net.*;
 import java.util.List;
 import java.util.ArrayList;
-import java.awt.Point;
 
 public class LiveBoardClient extends JFrame {
     private ObjectOutputStream out;
@@ -40,16 +39,37 @@ public class LiveBoardClient extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
+            String serverIP = JOptionPane.showInputDialog("Enter Server IP Address:");
+            if (serverIP == null) return;  // Cancelled
+
+            String portStr = JOptionPane.showInputDialog("Enter Server Port:");
+            if (portStr == null) return;  // Cancelled
+
             try {
-                String serverIP = JOptionPane.showInputDialog("Enter Server IP Address:");
-                String portStr = JOptionPane.showInputDialog("Enter Server Port:");
                 int port = Integer.parseInt(portStr.trim());
 
-                LiveBoardClient client = new LiveBoardClient(serverIP, port);
-                client.setVisible(true);
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(null, "Failed to connect: " + e.getMessage(),
-                                              "Connection Error", JOptionPane.ERROR_MESSAGE);
+                new SwingWorker<LiveBoardClient, Void>() {
+                    protected LiveBoardClient doInBackground() throws Exception {
+                        return new LiveBoardClient(serverIP, port);
+                    }
+
+                    protected void done() {
+                        try {
+                            LiveBoardClient client = get();
+                            client.setVisible(true);
+                        } catch (Exception e) {
+                            JOptionPane.showMessageDialog(null,
+                                "Failed to connect to server: " + e.getMessage(),
+                                "Connection Error",
+                                JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                }.execute();
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(null,
+                    "Invalid port number.",
+                    "Input Error",
+                    JOptionPane.ERROR_MESSAGE);
             }
         });
     }
