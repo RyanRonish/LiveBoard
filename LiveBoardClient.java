@@ -6,6 +6,7 @@ import java.io.*;
 import java.net.*;
 import java.util.List;
 import java.util.ArrayList;
+import java.awt.Point;
 
 public class LiveBoardClient extends JFrame {
     private ObjectOutputStream out;
@@ -27,8 +28,8 @@ public class LiveBoardClient extends JFrame {
                 Object input;
                 while ((input = in.readObject()) != null) {
                     if (input instanceof Point) {
-                        final Point point = (Point) input; // Create a final variable
-                        SwingUtilities.invokeLater(() -> drawArea.addPoint(point));
+                        Object finalInput = input;
+                        SwingUtilities.invokeLater(() -> drawArea.addPoint((Point) finalInput));
                     }
                 }
             } catch (Exception e) {
@@ -37,13 +38,20 @@ public class LiveBoardClient extends JFrame {
         }).start();
     }
 
-    public static void main(String[] args) throws IOException {
-        String serverIP = JOptionPane.showInputDialog("Enter Server IP Address:");
-        String portStr = JOptionPane.showInputDialog("Enter Server Port:");
-        int port = Integer.parseInt(portStr.trim());
-    
-        LiveBoardClient client = new LiveBoardClient(serverIP, port);
-        client.setVisible(true);
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                String serverIP = JOptionPane.showInputDialog("Enter Server IP Address:");
+                String portStr = JOptionPane.showInputDialog("Enter Server Port:");
+                int port = Integer.parseInt(portStr.trim());
+
+                LiveBoardClient client = new LiveBoardClient(serverIP, port);
+                client.setVisible(true);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "Failed to connect: " + e.getMessage(),
+                                              "Connection Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
     }
 }
 
