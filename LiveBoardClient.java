@@ -38,8 +38,10 @@ public class LiveBoardClient extends JFrame {
     }
 
     public static void main(String[] args) throws IOException {
-        String serverIP = "localhost";
-        int port = 12345;
+        String serverIP = JOptionPane.showInputDialog("Enter Server IP Address:");
+        String portStr = JOptionPane.showInputDialog("Enter Server Port:");
+        int port = Integer.parseInt(portStr.trim());
+    
         LiveBoardClient client = new LiveBoardClient(serverIP, port);
         client.setVisible(true);
     }
