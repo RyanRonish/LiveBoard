@@ -1,7 +1,7 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.*; // For thread safe collections and thread pool
 
 public class LiveBoardServer {
     private static final int PORT = 12345;
@@ -11,10 +11,12 @@ public class LiveBoardServer {
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = new ServerSocket(PORT);
         System.out.println("LiveBoard Server started on port " + PORT);
+
+        //accepts the clients 
         while (true) {
             try {
                 Socket clientSocket = serverSocket.accept();
-                ClientHandler handler = new ClientHandler(clientSocket);
+                ClientHandler handler = new ClientHandler(clientSocket);  // creeates the handler
                 clients.add(handler);
                 pool.execute(handler);
                 broadcastUserList();
@@ -24,6 +26,7 @@ public class LiveBoardServer {
         }
     }
 
+    // Broadcasts a message to all clients except the sender
     public static void broadcast(String msg, ClientHandler exclude) {
         for (ClientHandler client : clients) {
             if (client != exclude) {
@@ -32,6 +35,7 @@ public class LiveBoardServer {
         }
     }
 
+    // Broadcasts the user list to all clients
     public static void broadcastUserList() {
         StringBuilder sb = new StringBuilder("USERS:");
         for (ClientHandler c : clients) {
@@ -43,12 +47,14 @@ public class LiveBoardServer {
         }
     }
 
+    // Handles client connections
     static class ClientHandler implements Runnable {
         private Socket socket;
         private ObjectOutputStream out;
         private ObjectInputStream in;
         private String clientName;
 
+        
         public ClientHandler(Socket socket) {
             this.socket = socket;
             this.clientName = socket.getInetAddress().getHostAddress();
@@ -82,6 +88,7 @@ public class LiveBoardServer {
             }
         }
 
+        // Sends a message to the client
         public void send(String msg) {
             try {
                 out.writeObject(msg);

@@ -1,4 +1,4 @@
-import javax.swing.*;
+import javax.swing.*; // for gui components
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -6,8 +6,11 @@ import java.net.*;
 import java.util.List;
 import java.util.*;
 
+// client side that extends jframe for gui
 public class LiveBoardClient extends JFrame {
-    private DrawArea drawArea;
+    private DrawArea drawArea;  // panel for drawing
+
+    // buttons and sliders for user interaction
     private JButton clearButton;
     private JSlider brushSizeSlider;
     private JButton colorButton;
@@ -19,27 +22,30 @@ public class LiveBoardClient extends JFrame {
     private int currentBrushSize = 5;
 
     public LiveBoardClient(String serverIP, int port) throws IOException {
-        super("LiveBoard Client");
+        super("LiveBoard Client"); // window
+
+        // connects to server
         socket = new Socket(serverIP, port);
         out = new ObjectOutputStream(socket.getOutputStream());
         in = new ObjectInputStream(socket.getInputStream());
 
         drawArea = new DrawArea();
         drawArea.setBackground(Color.WHITE);
-
+        //features of the draw area
         clearButton = new JButton("Clear Board");
         brushSizeSlider = new JSlider(1, 20, 5);
         colorButton = new JButton("Choose Color");
 
+        //list of users connected
         userListModel = new DefaultListModel<>();
         JList<String> userList = new JList<>(userListModel);
-
+        // tools at the top for the user to choose from
         JPanel toolsPanel = new JPanel();
         toolsPanel.add(colorButton);
         toolsPanel.add(new JLabel("Brush Size:"));
         toolsPanel.add(brushSizeSlider);
         toolsPanel.add(clearButton);
-
+        // right panel for user list
         JPanel rightPanel = new JPanel();
         rightPanel.setLayout(new BorderLayout());
         rightPanel.add(new JLabel("Connected Users:"), BorderLayout.NORTH);
@@ -51,18 +57,21 @@ public class LiveBoardClient extends JFrame {
 
         drawArea.addMouseMotionListener(new MouseMotionAdapter() {
             public void mouseDragged(MouseEvent e) {
-                int x = e.getX();
-                int y = e.getY();
+                int x = e.getX(); // X position of cursor
+                int y = e.getY();  // Y position of cursor
                 drawArea.drawPoint(x, y, currentColor, currentBrushSize);
                 sendMessage("DRAW:" + x + "," + y + "," + currentColor.getRGB() + "," + currentBrushSize);
             }
         });
 
+
+        // clear button to clear the board
         clearButton.addActionListener(e -> {
             drawArea.clear();
             sendMessage("CLEAR");
         });
 
+        // for the usser to choose a color
         colorButton.addActionListener(e -> {
             Color chosen = JColorChooser.showDialog(null, "Pick a Color", currentColor);
             if (chosen != null) currentColor = chosen;
@@ -70,13 +79,14 @@ public class LiveBoardClient extends JFrame {
 
         brushSizeSlider.addChangeListener(e -> currentBrushSize = brushSizeSlider.getValue());
 
-        new Thread(() -> {
+
+        new Thread(() -> { // thread to listen for messages from the server
             try {
                 while (true) {
                     String msg = (String) in.readObject();
                     if (msg.startsWith("DRAW:")) {
                         String[] parts = msg.substring(5).split(",");
-                        int x = Integer.parseInt(parts[0]);
+                        int x = Integer.parseInt(parts[0]);           // Parse drawing message
                         int y = Integer.parseInt(parts[1]);
                         Color color = new Color(Integer.parseInt(parts[2]));
                         int size = Integer.parseInt(parts[3]);
@@ -110,6 +120,7 @@ public class LiveBoardClient extends JFrame {
         }
     }
 
+    // class to represent the drawing area
     class DrawArea extends JPanel {
         private List<Stroke> strokes = new ArrayList<>();
 
@@ -132,6 +143,7 @@ public class LiveBoardClient extends JFrame {
         }
     }
 
+    // class to represent a single point drawn on the board
     class Stroke {
         int x, y, size;
         Color color;
@@ -144,6 +156,6 @@ public class LiveBoardClient extends JFrame {
         String ip = JOptionPane.showInputDialog("Enter Server IP Address:");
         String portStr = JOptionPane.showInputDialog("Enter Port Number:");
         int port = Integer.parseInt(portStr);
-        new LiveBoardClient(ip, port);
+        new LiveBoardClient(ip, port);  // creates the client
     }
 }
